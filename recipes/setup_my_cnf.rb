@@ -1,6 +1,5 @@
-#
 # Cookbook Name:: db_mysql
-# Definition:: db_mysql_restore
+# Recipe:: setup_my_cnf
 #
 # Copyright (c) 2009 RightScale Inc
 #
@@ -23,37 +22,17 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-define :db_mysql_restore,  url => nil, branch => 'master', user => nil, credentials => nil, file_path => nil, schema_name => nil, tmp_dir => '/tmp' do
+#
+# Note! This does NOT restart mysql, only update the my.cnf
+# 
 
-  repo_params = params # see http://tickets.opscode.com/browse/CHEF-422
-  
-  dir = "#{params[:tmp_dir]}/db_mysql_restore"
-  dumpfile = "#{dir}/#{params[:file_path]}"
-  schema_name = params[:schema_name]
-
-  # grab mysqldump file from remote repository
-  repo_git_pull "Get mysqldump from git repository" do
-    url repo_params[:url]
-    branch repo_params[:branch] 
-    user repo_params[:user]
-    dest dir
-    cred repo_params[:credentials]
-  end
-
-  bash "unpack mysqldump file: #{dumpfile}" do
-    not_if "echo \"show databases\" | mysql | grep -q  \"^#{schema_name}$\""
-    user "root"
-    cwd dir
-    code <<-EOH
-      set -e
-      if [ ! -f #{dumpfile} ] 
-      then 
-        echo "ERROR: MySQL dumpfile not found! File: '#{dumpfile}'" 
-        exit 1
-      fi 
-      mysqladmin -u root create #{schema_name} 
-      gunzip < #{dumpfile} | mysql -u root -b #{schema_name}
-    EOH
-  end
-
+template value_for_platform([ "centos", "redhat", "suse" ] => {"default" => "/etc/my.cnf"}, "default" => "/etc/mysql/my.cnf") do
+  source "my.cnf.erb"
+  owner "root"
+  group "root"
+  mode "0644"
+  variables(
+    :server_id => @node[:db_mysql][:server_id]
+  )
 end
+
