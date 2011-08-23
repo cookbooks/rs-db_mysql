@@ -25,6 +25,11 @@
 
 db_mysql_set_privileges "setup application privileges" do
   preset "user"
+<<<<<<< HEAD
   username node[:db_mysql][:application][:user]
   password node[:db_mysql][:application][:password]
+=======
+  username @node[:db][:application][:user]
+  password @node[:db][:application][:password]
+>>>>>>> chef_refactor
 end
